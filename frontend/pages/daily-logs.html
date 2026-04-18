@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Daily Logs – PawPulse</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <style>
+    .logs-container { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 1.5rem; }
+    .logs-section { flex: 1; }
+    .log-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1rem; }
+    .log-date { font-size: 0.9rem; color: var(--text-soft); margin-bottom: 0.5rem; }
+    .log-stat { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--border); }
+    .log-stat:last-child { border-bottom: none; }
+    .log-label { color: var(--text-soft); font-size: 0.9rem; }
+    .log-value { font-weight: 600; color: var(--teal); }
+    .log-mood { display: inline-block; padding: 0.35rem 0.75rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600; }
+    .mood-happy { background: #D1FAE5; color: #065F46; }
+    .mood-normal { background: #DBEAFE; color: #0C4A6E; }
+    .mood-lethargic { background: #FED7AA; color: #7C2D12; }
+    .mood-anxious { background: #FBCFE8; color: #831843; }
+    .log-actions { display: flex; gap: 0.5rem; margin-top: 1rem; }
+    .btn-small { padding: 0.4rem 0.8rem; font-size: 0.85rem; border-radius: var(--radius-sm); border: none; cursor: pointer; transition: all 0.2s; }
+    .btn-edit { background: var(--indigo); color: white; }
+    .btn-edit:hover { background: #4F46E5; }
+    .btn-delete { background: var(--rose); color: white; }
+    .btn-delete:hover { background: #E11D48; }
+    .empty-state { text-align: center; padding: 2rem; color: var(--text-soft); }
+    .empty-state-icon { font-size: 3rem; margin-bottom: 1rem; }
+    .chart-container { margin-top: 1.5rem; padding: 1.5rem; background: var(--surface2); border-radius: var(--radius); }
+    .chart-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; color: var(--text); }
+    .stat-row { display: flex; gap: 1rem; margin-bottom: 1rem; }
+    .stat-box { flex: 1; background: var(--surface); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border); text-align: center; }
+    .stat-box-value { font-size: 1.5rem; font-weight: 700; color: var(--teal); }
+    .stat-box-label { font-size: 0.85rem; color: var(--text-soft); margin-top: 0.25rem; }
+    @media (max-width: 1024px) {
+      .logs-container { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="../index.html" class="nav-brand"><span class="paw">🐾</span> PawPulse</a>
+  <div class="nav-links">
+    <a href="dashboard.html" class="nav-link">← Dashboard</a>
+    <button onclick="logout()" class="nav-btn outline">Logout</button>
+  </div>
+</nav>
+
+<div class="page-wrapper">
+  <div class="page-header animate-in">
+    <div>
+      <h1 class="page-title">📋 Daily Logs</h1>
+      <p class="page-subtitle">Track and analyze your pet's daily food, water, and activity patterns.</p>
+    </div>
+  </div>
+
+  <!-- Pet Selection -->
+  <div class="card animate-in" style="margin-bottom: 1.5rem;">
+    <div class="form-group">
+      <label class="form-label">Select Pet *</label>
+      <select id="petSelect" class="form-control" onchange="loadLogs()" required>
+        <option value="">Loading pets...</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 2px solid var(--border); padding-bottom: 1rem;">
+    <button class="tab-btn active" onclick="switchTab('view')">📊 View Logs</button>
+    <button class="tab-btn" onclick="switchTab('add')">➕ Add Log</button>
+    <button class="tab-btn" onclick="switchTab('analyze')">📈 Analyze</button>
+  </div>
+
+  <!-- View Logs Tab -->
+  <div id="viewTab" class="tab-content" style="display: block;">
+    <div id="logsContainer"></div>
+  </div>
+
+  <!-- Add Log Tab -->
+  <div id="addTab" class="tab-content" style="display: none;">
+    <div class="card animate-in">
+      <h3 style="margin-bottom: 1.5rem;">🍗 Add Today's Log</h3>
+      
+      <form id="addLogForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Food Amount (grams)</label>
+            <input type="number" id="foodAmount" class="form-control" placeholder="e.g. 250" min="0"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Number of Meals</label>
+            <input type="number" id="foodMeals" class="form-control" placeholder="e.g. 2" min="0"/>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Water Intake (ml)</label>
+            <input type="number" id="waterAmount" class="form-control" placeholder="e.g. 500" min="0"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Activity Level</label>
+            <select id="activity" class="form-control">
+              <option value="None">None</option>
+              <option value="Light">Light</option>
+              <option value="Moderate" selected>Moderate</option>
+              <option value="High">High</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Pet Mood</label>
+            <select id="mood" class="form-control">
+              <option value="Happy">😊 Happy</option>
+              <option value="Normal" selected>😐 Normal</option>
+              <option value="Lethargic">😴 Lethargic</option>
+              <option value="Anxious">😟 Anxious</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Log Date</label>
+            <input type="date" id="logDate" class="form-control"/>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Additional Notes</label>
+          <textarea id="logNotes" class="form-control" rows="3" placeholder="Any observations or concerns..."></textarea>
+        </div>
+
+        <div id="addLogError" class="alert alert-danger" style="display: none; margin-bottom: 1rem;"></div>
+        <div id="addLogSuccess" class="alert alert-success" style="display: none; margin-bottom: 1rem;"></div>
+
+        <button type="submit" class="btn btn-primary btn-lg btn-full">💾 Save Log</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Analyze Tab -->
+  <div id="analyzeTab" class="tab-content" style="display: none;">
+    <div class="card animate-in">
+      <h3 style="margin-bottom: 1.5rem;">📈 Analysis & Insights</h3>
+      
+      <div class="chart-container">
+        <div class="chart-title">🍽️ Food & Water Tracking (Last 7 Days)</div>
+        <div class="stat-row">
+          <div class="stat-box">
+            <div class="stat-box-value" id="avgFood">-</div>
+            <div class="stat-box-label">Avg Daily Food (g)</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-box-value" id="avgWater">-</div>
+            <div class="stat-box-label">Avg Daily Water (ml)</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-box-value" id="avgMeals">-</div>
+            <div class="stat-box-label">Avg Meals/Day</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-container">
+        <div class="chart-title">🎭 Mood & Activity Trends</div>
+        <div style="padding: 1rem; background: var(--surface); border-radius: var(--radius-sm);">
+          <div style="margin-bottom: 1rem;">
+            <strong style="color: var(--text);">Most Common Mood:</strong>
+            <div id="dominantMood" style="margin-top: 0.5rem; color: var(--text-soft);">-</div>
+          </div>
+          <div>
+            <strong style="color: var(--text);">Activity Level Distribution:</strong>
+            <div id="activityChart" style="margin-top: 0.5rem; display: flex; gap: 0.5rem;">
+              <div class="stat-box" style="flex: 1;">
+                <div class="stat-box-value" id="noneActivity">0%</div>
+                <div class="stat-box-label">None</div>
+              </div>
+              <div class="stat-box" style="flex: 1;">
+                <div class="stat-box-value" id="lightActivity">0%</div>
+                <div class="stat-box-label">Light</div>
+              </div>
+              <div class="stat-box" style="flex: 1;">
+                <div class="stat-box-value" id="modActivity">0%</div>
+                <div class="stat-box-label">Moderate</div>
+              </div>
+              <div class="stat-box" style="flex: 1;">
+                <div class="stat-box-value" id="highActivity">0%</div>
+                <div class="stat-box-label">High</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="analysisMessage" style="text-align: center; color: var(--text-soft); margin-top: 1rem;">Loading analysis...</div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .tab-btn {
+    padding: 0.75rem 1.25rem;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: var(--text-soft);
+    font-weight: 600;
+    transition: all 0.2s;
+    border-bottom: 3px solid transparent;
+  }
+  .tab-btn.active {
+    color: var(--teal);
+    border-bottom-color: var(--teal);
+  }
+  .tab-btn:hover { color: var(--teal); }
+  .tab-content { animation: fadeIn 0.3s ease-in; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+</style>
+
+<script src="../js/api.js"></script>
+<script>
+  // ─── Initialize ─────────────────────────────────────────────
+  if (!requireAuth()) {
+    window.location.href = 'login.html';
+  }
+
+  let currentPetId = null;
+  let allLogs = [];
+  let editingLogId = null;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    setLogDate();
+    loadPets();
+  });
+
+  // ─── Load Pets ──────────────────────────────────────────────
+  async function loadPets() {
+    try {
+      const result = await PetAPI.getAll();
+      const petSelect = document.getElementById('petSelect');
+      petSelect.innerHTML = '<option value="">Select a pet...</option>';
+      
+      if (result.pets && result.pets.length > 0) {
+        result.pets.forEach(pet => {
+          const option = document.createElement('option');
+          option.value = pet._id;
+          option.textContent = `${pet.species === 'Dog' ? '🐕' : pet.species === 'Cat' ? '🐈' : pet.species === 'Bird' ? '🦜' : pet.species === 'Rabbit' ? '🐇' : pet.species === 'Fish' ? '🐟' : pet.species === 'Hamster' ? '🐹' : '🐾'} ${pet.name}`;
+          petSelect.appendChild(option);
+        });
+        if (result.pets.length === 1) {
+          petSelect.value = result.pets[0]._id;
+          loadLogs();
+        }
+      } else {
+        petSelect.innerHTML = '<option value="">No pets found. Add one first!</option>';
+      }
+    } catch (error) {
+      console.error('Error loading pets:', error);
+      showToast('Failed to load pets', 'error');
+    }
+  }
+
+  // ─── Load Logs ──────────────────────────────────────────────
+  async function loadLogs() {
+    currentPetId = document.getElementById('petSelect').value;
+    if (!currentPetId) {
+      document.getElementById('logsContainer').innerHTML = '<div class="empty-state"><div class="empty-state-icon">🐾</div>Please select a pet</div>';
+      return;
+    }
+
+    try {
+      const result = await PetAPI.getLogs(currentPetId);
+      allLogs = result.logs || [];
+      displayLogs();
+      loadAnalysis();
+    } catch (error) {
+      console.error('Error loading logs:', error);
+      showToast('Failed to load logs', 'error');
+    }
+  }
+
+  // ─── Display Logs ───────────────────────────────────────────
+  function displayLogs() {
+    const container = document.getElementById('logsContainer');
+    
+    if (allLogs.length === 0) {
+      container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><p>No logs yet. Add your first log to get started!</p></div>';
+      return;
+    }
+
+    const sortedLogs = [...allLogs].sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    container.innerHTML = sortedLogs.map(log => `
+      <div class="log-card animate-in">
+        <div class="log-date">📅 ${formatDate(log.date)}</div>
+        <div class="log-stat">
+          <span class="log-label">🍗 Food</span>
+          <span class="log-value">${log.food.amount}g (${log.food.meals} meals)</span>
+        </div>
+        <div class="log-stat">
+          <span class="log-label">💧 Water</span>
+          <span class="log-value">${log.water.amount}ml</span>
+        </div>
+        <div class="log-stat">
+          <span class="log-label">🏃 Activity</span>
+          <span class="log-value">${log.activity}</span>
+        </div>
+        <div class="log-stat">
+          <span class="log-label">🎭 Mood</span>
+          <span class="log-mood mood-${log.mood.toLowerCase()}">${getMoodEmoji(log.mood)} ${log.mood}</span>
+        </div>
+        ${log.notes ? `<div class="log-stat"><span class="log-label">📝 Notes</span><span class="log-value">${log.notes}</span></div>` : ''}
+        <div class="log-actions">
+          <button class="btn-small btn-edit" onclick="editLog('${log._id}')">✏️ Edit</button>
+          <button class="btn-small btn-delete" onclick="deleteLog('${log._id}')">🗑️ Delete</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // ─── Get Mood Emoji ──────────────────────────────────────────
+  function getMoodEmoji(mood) {
+    const moods = { 'Happy': '😊', 'Normal': '😐', 'Lethargic': '😴', 'Anxious': '😟' };
+    return moods[mood] || '😐';
+  }
+
+  // ─── Set Log Date ───────────────────────────────────────────
+  function setLogDate() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('logDate').value = today;
+  }
+
+  // ─── Add Log Form Submit ────────────────────────────────────
+  document.getElementById('addLogForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    if (!currentPetId) {
+      showToast('Please select a pet first', 'error');
+      return;
+    }
+
+    const errorBox = document.getElementById('addLogError');
+    const successBox = document.getElementById('addLogSuccess');
+    errorBox.style.display = 'none';
+    successBox.style.display = 'none';
+
+    try {
+      const logData = {
+        food: {
+          amount: parseInt(document.getElementById('foodAmount').value) || 0,
+          meals: parseInt(document.getElementById('foodMeals').value) || 0
+        },
+        water: {
+          amount: parseInt(document.getElementById('waterAmount').value) || 0
+        },
+        activity: document.getElementById('activity').value,
+        mood: document.getElementById('mood').value,
+        notes: document.getElementById('logNotes').value,
+        date: document.getElementById('logDate').value
+      };
+
+      if (editingLogId) {
+        // Update existing log
+        await PetAPI.updateLog(currentPetId, editingLogId, logData);
+        successBox.textContent = '✅ Log updated successfully!';
+        editingLogId = null;
+      } else {
+        // Create new log
+        await PetAPI.addLog(currentPetId, logData);
+        successBox.textContent = '✅ Log saved successfully!';
+      }
+      
+      successBox.style.display = 'block';
+      
+      document.getElementById('addLogForm').reset();
+      setLogDate();
+      
+      setTimeout(() => {
+        loadLogs();
+        switchTab('view');
+      }, 1000);
+    } catch (error) {
+      errorBox.textContent = `❌ ${error.message}`;
+      errorBox.style.display = 'block';
+    }
+  });
+
+  // ─── Edit Log ───────────────────────────────────────────────
+  function editLog(logId) {
+    const log = allLogs.find(l => l._id === logId);
+    if (!log) return;
+
+    editingLogId = logId;
+    document.getElementById('foodAmount').value = log.food.amount;
+    document.getElementById('foodMeals').value = log.food.meals;
+    document.getElementById('waterAmount').value = log.water.amount;
+    document.getElementById('activity').value = log.activity;
+    document.getElementById('mood').value = log.mood;
+    document.getElementById('logNotes').value = log.notes || '';
+    document.getElementById('logDate').value = log.date.split('T')[0];
+
+    switchTab('add');
+    document.querySelector('.tab-btn:nth-child(2)').textContent = '✏️ Edit Log';
+  }
+
+  // ─── Delete Log ──────────────────────────────────────────────
+  async function deleteLog(logId) {
+    if (!confirm('Are you sure you want to delete this log?')) return;
+
+    try {
+      await PetAPI.deleteLog(currentPetId, logId);
+      showToast('Log deleted successfully', 'success');
+      loadLogs();
+    } catch (error) {
+      showToast(`Error: ${error.message}`, 'error');
+    }
+  }
+
+  // ─── Load Analysis ──────────────────────────────────────────
+  function loadAnalysis() {
+    if (allLogs.length === 0) {
+      document.getElementById('analysisMessage').textContent = 'No logs available to analyze. Add some logs first!';
+      return;
+    }
+
+    const last7Days = allLogs.filter(log => {
+      const logDate = new Date(log.date);
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      return logDate >= sevenDaysAgo;
+    });
+
+    if (last7Days.length === 0) {
+      document.getElementById('analysisMessage').textContent = 'No logs in the last 7 days.';
+      return;
+    }
+
+    // Calculate averages
+    const avgFood = (last7Days.reduce((sum, log) => sum + log.food.amount, 0) / last7Days.length).toFixed(1);
+    const avgWater = (last7Days.reduce((sum, log) => sum + log.water.amount, 0) / last7Days.length).toFixed(1);
+    const avgMeals = (last7Days.reduce((sum, log) => sum + log.food.meals, 0) / last7Days.length).toFixed(1);
+
+    document.getElementById('avgFood').textContent = avgFood;
+    document.getElementById('avgWater').textContent = avgWater;
+    document.getElementById('avgMeals').textContent = avgMeals;
+
+    // Calculate mood distribution
+    const moodCounts = {};
+    last7Days.forEach(log => {
+      moodCounts[log.mood] = (moodCounts[log.mood] || 0) + 1;
+    });
+    const dominantMood = Object.keys(moodCounts).reduce((a, b) => moodCounts[a] > moodCounts[b] ? a : b);
+    document.getElementById('dominantMood').innerHTML = `${getMoodEmoji(dominantMood)} ${dominantMood} (${moodCounts[dominantMood]} days)`;
+
+    // Calculate activity distribution
+    const activityCounts = {};
+    last7Days.forEach(log => {
+      activityCounts[log.activity] = (activityCounts[log.activity] || 0) + 1;
+    });
+    const total = last7Days.length;
+
+    document.getElementById('noneActivity').textContent = ((activityCounts['None'] || 0) / total * 100).toFixed(0) + '%';
+    document.getElementById('lightActivity').textContent = ((activityCounts['Light'] || 0) / total * 100).toFixed(0) + '%';
+    document.getElementById('modActivity').textContent = ((activityCounts['Moderate'] || 0) / total * 100).toFixed(0) + '%';
+    document.getElementById('highActivity').textContent = ((activityCounts['High'] || 0) / total * 100).toFixed(0) + '%';
+
+    document.getElementById('analysisMessage').style.display = 'none';
+  }
+
+  // ─── Switch Tabs ────────────────────────────────────────────
+  function switchTab(tab) {
+    document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    
+    document.getElementById(tab + 'Tab').style.display = 'block';
+    
+    // Find and activate the correct button
+    const buttons = document.querySelectorAll('.tab-btn');
+    if (tab === 'view') buttons[0].classList.add('active');
+    else if (tab === 'add') buttons[1].classList.add('active');
+    else if (tab === 'analyze') buttons[2].classList.add('active');
+    
+    if (tab === 'analyze') loadAnalysis();
+    if (tab === 'add' && !editingLogId) {
+      // Reset button text when opening add tab
+      buttons[1].textContent = '➕ Add Log';
+    }
+  }
+
+  // ─── Format Date ────────────────────────────────────────────
+  function formatDate(dateStr) {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  // ─── Logout ─────────────────────────────────────────────────
+  function logout() {
+    if (confirm('Are you sure you want to logout?')) {
+      clearAuth();
+      window.location.href = 'login.html';
+    }
+  }
+</script>
+</body>
+</html>

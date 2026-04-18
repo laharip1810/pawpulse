@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard – PawPulse</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+
+<!-- ── Navbar ─────────────────────────────────────────────── -->
+<nav class="navbar">
+  <a href="../index.html" class="nav-brand"><span class="paw">🐾</span> PawPulse</a>
+  <div class="nav-links">
+    <a href="dashboard.html" class="nav-link active">Dashboard</a>
+    <a href="add-pet.html" class="nav-link">+ Add Pet</a>
+    <a href="health.html" class="nav-link">Health Check</a>
+    <a href="daily-logs.html" class="nav-link">Daily Logs</a>
+    <span id="navUserName" class="nav-link" style="color:var(--teal);font-weight:700;"></span>
+    <button onclick="logout()" class="nav-btn outline">Logout</button>
+  </div>
+</nav>
+
+<!-- ── Main Layout ─────────────────────────────────────────── -->
+<div class="dashboard-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-user">
+      <div class="sidebar-avatar" id="sidebarInitial">?</div>
+      <div class="sidebar-name" id="sidebarName">Loading...</div>
+      <div class="sidebar-role">Pet Parent</div>
+    </div>
+    <ul class="sidebar-nav">
+      <li><a href="dashboard.html" class="active"><span class="icon">📊</span> Dashboard</a></li>
+      <li><a href="add-pet.html"><span class="icon">➕</span> Add Pet</a></li>
+      <li><a href="health.html"><span class="icon">🏥</span> Health Checker</a></li>
+      <li><a href="#vacSection"><span class="icon">💉</span> Vaccinations</a></li>
+      <li><a href="daily-logs.html"><span class="icon">🍗</span> Daily Logs</a></li>
+      <li style="margin-top:auto;padding-top:1rem;">
+        <a href="#" onclick="logout()"><span class="icon">🚪</span> Logout</a>
+      </li>
+    </ul>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content" id="mainContent">
+    <div id="pageContent">
+      <div class="loader"><div class="spinner"></div></div>
+    </div>
+  </main>
+</div>
+
+<!-- ── Log Modal ──────────────────────────────────────────── -->
+<div id="logModal" class="modal-overlay" style="display:none;">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>🍗 Log Today's Intake</h3>
+      <button class="modal-close" onclick="closeLogModal()">✕</button>
+    </div>
+    <form id="logForm">
+      <input type="hidden" id="logPetId"/>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Food Amount (grams)</label>
+          <input type="number" id="foodAmount" class="form-control" placeholder="e.g. 250" min="0"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Number of Meals</label>
+          <input type="number" id="foodMeals" class="form-control" placeholder="e.g. 2" min="0"/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Water Intake (ml)</label>
+          <input type="number" id="waterAmount" class="form-control" placeholder="e.g. 500" min="0"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Activity Level</label>
+          <select id="activity" class="form-control">
+            <option value="None">None</option>
+            <option value="Light">Light</option>
+            <option value="Moderate" selected>Moderate</option>
+            <option value="High">High</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Mood</label>
+        <select id="mood" class="form-control">
+          <option value="Happy">😊 Happy</option>
+          <option value="Normal" selected>😐 Normal</option>
+          <option value="Lethargic">😴 Lethargic</option>
+          <option value="Anxious">😟 Anxious</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea id="logNotes" class="form-control" rows="2" placeholder="Any observations..."></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full">Save Log</button>
+    </form>
+  </div>
+</div>
+
+<script src="../js/api.js"></script>
+<script>
+  if (!requireAuth()) {}
+
+  const user = getUser();
+  document.getElementById('navUserName').textContent = `Hi, ${user?.name?.split(' ')[0]} 👋`;
+  document.getElementById('sidebarName').textContent = user?.name || 'User';
+  document.getElementById('sidebarInitial').textContent = (user?.name || 'U').charAt(0).toUpperCase();
+
+  const SPECIES_EMOJI = { Dog:'🐕', Cat:'🐈', Bird:'🦜', Rabbit:'🐇', Fish:'🐟', Hamster:'🐹', Other:'🐾' };
+  const STATUS_BADGE = { Excellent:'badge-excellent', Good:'badge-good', Fair:'badge-fair', Poor:'badge-poor' };
+
+  async function loadDashboard() {
+    try {
+      const { pets } = await PetAPI.getAll();
+      renderDashboard(pets);
+    } catch (err) {
+      document.getElementById('pageContent').innerHTML =
+        `<div class="alert alert-danger">Failed to load: ${err.message}</div>`;
+    }
+  }
+
+  function renderDashboard(pets) {
+    // Count upcoming vaccines
+    let upcomingVacs = 0;
+    pets.forEach(p => {
+      p.vaccinations?.forEach(v => {
+        if (!v.completed && daysUntil(v.dueDate) <= 30) upcomingVacs++;
+      });
+    });
+
+    const html = `
+      <div class="page-header">
+        <div>
+          <h1 class="page-title animate-in">Good day, ${user?.name?.split(' ')[0]}! 🌟</h1>
+          <p class="page-subtitle">${new Date().toLocaleDateString('en-IN',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</p>
+        </div>
+        <a href="add-pet.html" class="btn btn-primary">+ Add Pet</a>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid animate-in delay-1">
+        <div class="stat-card">
+          <div class="stat-icon">🐾</div>
+          <div class="stat-value">${pets.length}</div>
+          <div class="stat-label">My Pets</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">💉</div>
+          <div class="stat-value">${upcomingVacs}</div>
+          <div class="stat-label">Upcoming Vaccines</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">✅</div>
+          <div class="stat-value">${pets.filter(p=>p.healthStatus==='Excellent'||p.healthStatus==='Good').length}</div>
+          <div class="stat-label">Healthy Pets</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">⚠️</div>
+          <div class="stat-value">${pets.filter(p=>p.healthStatus==='Fair'||p.healthStatus==='Poor').length}</div>
+          <div class="stat-label">Need Attention</div>
+        </div>
+      </div>
+
+      <!-- Vaccine Alerts -->
+      ${renderVaccineAlerts(pets)}
+
+      <!-- Pets Section -->
+      <div class="section-header animate-in delay-2">
+        <h2 class="section-title">🐾 My Pets</h2>
+        <a href="add-pet.html" class="btn btn-outline btn-sm">+ Add New</a>
+      </div>
+
+      ${pets.length === 0 ? `
+        <div class="empty-state">
+          <div class="empty-icon">🐾</div>
+          <h3>No pets yet!</h3>
+          <p>Add your first pet to get started.</p>
+          <a href="add-pet.html" class="btn btn-primary" style="margin-top:1rem;">Add My First Pet</a>
+        </div>
+      ` : `<div class="pets-grid animate-in delay-3">${pets.map(renderPetCard).join('')}</div>`}
+
+      <!-- Vaccination Schedule -->
+      ${pets.length > 0 ? renderVaccinationSection(pets) : ''}
+    `;
+    document.getElementById('pageContent').innerHTML = html;
+  }
+
+  function renderVaccineAlerts(pets) {
+    const alerts = [];
+    pets.forEach(pet => {
+      pet.vaccinations?.forEach(v => {
+        if (!v.completed) {
+          const days = daysUntil(v.dueDate);
+          if (days < 0) alerts.push({ type:'danger', msg:`⚠️ <b>${pet.name}</b>: <b>${v.name}</b> was overdue on ${formatDate(v.dueDate)}!` });
+          else if (days <= 7) alerts.push({ type:'warning', msg:`🔔 <b>${pet.name}</b>: <b>${v.name}</b> due in <b>${days} day(s)</b> (${formatDate(v.dueDate)})` });
+        }
+      });
+    });
+    if (alerts.length === 0) return '';
+    return `<div style="margin-bottom:1.5rem;">${alerts.map(a=>`<div class="alert alert-${a.type}">${a.msg}</div>`).join('')}</div>`;
+  }
+
+  function renderPetCard(pet) {
+    const emoji = SPECIES_EMOJI[pet.species] || '🐾';
+    const badgeClass = STATUS_BADGE[pet.healthStatus] || 'badge-good';
+    return `
+      <div class="pet-card animate-in">
+        <div class="pet-card-header">
+          <div class="pet-avatar">${emoji}</div>
+          <div class="pet-card-name">${pet.name}</div>
+          <div class="pet-card-breed">${pet.breed || pet.species}</div>
+        </div>
+        <div class="pet-card-body">
+          <div class="pet-meta">
+            <span class="pet-meta-item">⚤ ${pet.gender}</span>
+            <span class="pet-meta-item">🎂 ${pet.age} ${pet.ageUnit}</span>
+            ${pet.weight ? `<span class="pet-meta-item">⚖️ ${pet.weight}kg</span>` : ''}
+          </div>
+          <div style="margin-bottom:1rem;">
+            <span class="badge ${badgeClass}">❤️ ${pet.healthStatus || 'Good'}</span>
+          </div>
+          <div class="pet-actions">
+            <button onclick="openLogModal('${pet._id}')" class="btn btn-amber btn-sm">🍗 Log</button>
+            <a href="health.html?petId=${pet._id}" class="btn btn-outline btn-sm">🏥 Check</a>
+            <button onclick="deletePetConfirm('${pet._id}','${pet.name}')" class="btn btn-danger btn-sm">🗑️</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderVaccinationSection(pets) {
+    const allVacs = [];
+    pets.forEach(pet => {
+      (pet.vaccinations || []).forEach(v => {
+        if (!v.completed) allVacs.push({ ...v, petName: pet.name, petId: pet._id });
+      });
+    });
+    allVacs.sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate));
+
+    if (allVacs.length === 0) return '';
+
+    return `
+      <div id="vacSection" style="margin-top:2rem;" class="animate-in">
+        <div class="section-header">
+          <h2 class="section-title">💉 Vaccination Schedule</h2>
+        </div>
+        ${allVacs.slice(0,8).map(v => {
+          const days = daysUntil(v.dueDate);
+          const cls = days < 0 ? 'overdue' : days <= 7 ? 'soon' : '';
+          const label = days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? 'Today!' : `${days}d left`;
+          const lCls = days < 0 ? 'badge-poor' : days <= 7 ? 'badge-fair' : 'badge-good';
+          return `
+            <div class="vaccine-item ${cls}">
+              <div>
+                <div class="vaccine-name">${v.petName} – ${v.name}</div>
+                <div class="vaccine-date">📅 ${formatDate(v.dueDate)}</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:.5rem;">
+                <span class="badge ${lCls}">${label}</span>
+                <button onclick="markVac('${v.petId}','${v._id}')" class="btn btn-primary btn-sm">✓ Done</button>
+              </div>
+            </div>`;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  async function markVac(petId, vacId) {
+    try {
+      await PetAPI.markVaccination(petId, vacId);
+      showToast('Vaccination marked complete! 💉');
+      loadDashboard();
+    } catch(err) { showToast(err.message, 'error'); }
+  }
+
+  async function deletePetConfirm(id, name) {
+    if (!confirm(`Delete ${name}? This cannot be undone.`)) return;
+    try {
+      await PetAPI.delete(id);
+      showToast(`${name} removed.`);
+      loadDashboard();
+    } catch(err) { showToast(err.message, 'error'); }
+  }
+
+  function openLogModal(petId) {
+    document.getElementById('logPetId').value = petId;
+    document.getElementById('logModal').style.display = 'flex';
+  }
+  function closeLogModal() {
+    document.getElementById('logModal').style.display = 'none';
+    document.getElementById('logForm').reset();
+  }
+
+  document.getElementById('logForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const petId = document.getElementById('logPetId').value;
+    try {
+      await PetAPI.addLog(petId, {
+        food: {
+          amount: +document.getElementById('foodAmount').value || 0,
+          meals: +document.getElementById('foodMeals').value || 0
+        },
+        water: { amount: +document.getElementById('waterAmount').value || 0 },
+        activity: document.getElementById('activity').value,
+        mood: document.getElementById('mood').value,
+        notes: document.getElementById('logNotes').value
+      });
+      closeLogModal();
+      showToast('Daily log saved! 🍗');
+    } catch(err) { showToast(err.message, 'error'); }
+  });
+
+  function logout() {
+    clearAuth();
+    window.location.href = '../index.html';
+  }
+
+  loadDashboard();
+</script>
+</body>
+</html>

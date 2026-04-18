@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Panel – PawPulse</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="../index.html" class="nav-brand"><span class="paw">🐾</span> PawPulse <span style="font-size:.7rem;background:var(--amber);color:#fff;padding:.1rem .4rem;border-radius:4px;vertical-align:middle;font-family:var(--font-body);font-weight:700;">ADMIN</span></a>
+  <div class="nav-links">
+    <button onclick="showTab('dashboard')" class="nav-link active" id="tab-dashboard">📊 Overview</button>
+    <button onclick="showTab('users')" class="nav-link" id="tab-users">👥 Users</button>
+    <button onclick="showTab('pets')" class="nav-link" id="tab-pets">🐾 Pets</button>
+    <button onclick="logout()" class="nav-btn outline">Logout</button>
+  </div>
+</nav>
+
+<div class="page-wrapper">
+
+  <!-- Tab: Dashboard Overview -->
+  <div id="section-dashboard" class="tab-section">
+    <div class="page-header animate-in">
+      <div>
+        <h1 class="page-title">Admin Dashboard</h1>
+        <p class="page-subtitle">System overview and management</p>
+      </div>
+    </div>
+
+    <div id="statsContent">
+      <div class="loader"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <!-- Tab: Users -->
+  <div id="section-users" class="tab-section" style="display:none;">
+    <div class="page-header animate-in">
+      <h1 class="page-title">👥 All Users</h1>
+    </div>
+    <div id="usersContent">
+      <div class="loader"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <!-- Tab: Pets -->
+  <div id="section-pets" class="tab-section" style="display:none;">
+    <div class="page-header animate-in">
+      <h1 class="page-title">🐾 All Pets</h1>
+    </div>
+    <div id="petsContent">
+      <div class="loader"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="../js/api.js"></script>
+<script>
+  if (!requireAdmin()) {}
+
+  const STATUS_BADGE = { Excellent:'badge-excellent', Good:'badge-good', Fair:'badge-fair', Poor:'badge-poor' };
+
+  function showTab(tab) {
+    document.querySelectorAll('.tab-section').forEach(s => s.style.display = 'none');
+    document.querySelectorAll('[id^="tab-"]').forEach(b => b.classList.remove('active'));
+    document.getElementById(`section-${tab}`).style.display = 'block';
+    document.getElementById(`tab-${tab}`).classList.add('active');
+    if (tab === 'dashboard') loadStats();
+    if (tab === 'users') loadUsers();
+    if (tab === 'pets') loadPets();
+  }
+
+  async function loadStats() {
+    try {
+      const data = await AdminAPI.getStats();
+      const { stats, recentUsers, recentPets } = data;
+
+      document.getElementById('statsContent').innerHTML = `
+        <div class="stats-grid animate-in">
+          <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-value">${stats.totalUsers}</div><div class="stat-label">Total Users</div></div>
+          <div class="stat-card"><div class="stat-icon">🐾</div><div class="stat-value">${stats.totalPets}</div><div class="stat-label">Total Pets</div></div>
+          <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-value">${stats.totalLogs}</div><div class="stat-label">Daily Logs</div></div>
+          <div class="stat-card"><div class="stat-icon">🏥</div><div class="stat-value">${stats.totalHealthChecks}</div><div class="stat-label">Health Checks</div></div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1.5rem;" class="animate-in delay-2">
+          <div class="card">
+            <h3 style="margin-bottom:1rem;">🆕 Recent Users</h3>
+            ${recentUsers.length === 0 ? '<p style="color:var(--text-soft)">No users yet.</p>' : recentUsers.map(u => `
+              <div style="display:flex;align-items:center;gap:.75rem;padding:.6rem 0;border-bottom:1px solid var(--border);">
+                <div style="width:36px;height:36px;background:var(--teal);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.9rem;">${u.name.charAt(0).toUpperCase()}</div>
+                <div>
+                  <div style="font-weight:600;font-size:.9rem;">${u.name}</div>
+                  <div style="font-size:.78rem;color:var(--text-soft);">${u.email}</div>
+                </div>
+                <div style="margin-left:auto;font-size:.75rem;color:var(--text-soft);">${formatDate(u.createdAt)}</div>
+              </div>
+            `).join('')}
+          </div>
+
+          <div class="card">
+            <h3 style="margin-bottom:1rem;">🐾 Recent Pets</h3>
+            ${recentPets.length === 0 ? '<p style="color:var(--text-soft)">No pets yet.</p>' : recentPets.map(p => `
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:.6rem 0;border-bottom:1px solid var(--border);">
+                <div>
+                  <div style="font-weight:600;font-size:.9rem;">${p.name} <span style="color:var(--text-soft);font-weight:400;">(${p.species})</span></div>
+                  <div style="font-size:.78rem;color:var(--text-soft);">Owner: ${p.owner?.name || 'Unknown'}</div>
+                </div>
+                <span class="badge ${STATUS_BADGE[p.healthStatus] || 'badge-good'}">${p.healthStatus}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    } catch(err) {
+      document.getElementById('statsContent').innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
+    }
+  }
+
+  async function loadUsers() {
+    try {
+      const { users } = await AdminAPI.getUsers();
+      document.getElementById('usersContent').innerHTML = `
+        <div class="table-wrapper animate-in">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Role</th>
+                <th>Joined</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${users.map((u, i) => `
+                <tr>
+                  <td>${i + 1}</td>
+                  <td><strong>${u.name}</strong></td>
+                  <td>${u.email}</td>
+                  <td>${u.phone || '—'}</td>
+                  <td><span class="badge ${u.role === 'admin' ? 'badge-fair' : 'badge-good'}">${u.role}</span></td>
+                  <td>${formatDate(u.createdAt)}</td>
+                  <td>
+                    <button onclick="deleteUser('${u._id}','${u.name}')" class="btn btn-danger btn-sm">🗑️ Delete</button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+        ${users.length === 0 ? '<div class="empty-state"><div class="empty-icon">👥</div><h3>No users yet</h3></div>' : ''}
+      `;
+    } catch(err) {
+      document.getElementById('usersContent').innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
+    }
+  }
+
+  async function loadPets() {
+    try {
+      const { pets } = await AdminAPI.getPets();
+      document.getElementById('petsContent').innerHTML = `
+        <div class="table-wrapper animate-in">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Pet Name</th>
+                <th>Species</th>
+                <th>Breed</th>
+                <th>Age</th>
+                <th>Gender</th>
+                <th>Health</th>
+                <th>Owner</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${pets.map((p, i) => `
+                <tr>
+                  <td>${i + 1}</td>
+                  <td><strong>${p.name}</strong></td>
+                  <td>${p.species}</td>
+                  <td>${p.breed || '—'}</td>
+                  <td>${p.age} ${p.ageUnit}</td>
+                  <td>${p.gender}</td>
+                  <td><span class="badge ${STATUS_BADGE[p.healthStatus] || 'badge-good'}">${p.healthStatus}</span></td>
+                  <td>${p.owner?.name || '—'}<br/><span style="font-size:.75rem;color:var(--text-soft);">${p.owner?.email || ''}</span></td>
+                  <td>
+                    <button onclick="deleteAdminPet('${p._id}','${p.name}')" class="btn btn-danger btn-sm">🗑️ Delete</button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+        ${pets.length === 0 ? '<div class="empty-state"><div class="empty-icon">🐾</div><h3>No pets yet</h3></div>' : ''}
+      `;
+    } catch(err) {
+      document.getElementById('petsContent').innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
+    }
+  }
+
+  async function deleteUser(id, name) {
+    if (!confirm(`Delete user "${name}" and ALL their data? This is permanent.`)) return;
+    try {
+      await AdminAPI.deleteUser(id);
+      showToast(`User ${name} deleted.`);
+      loadUsers();
+    } catch(err) { showToast(err.message, 'error'); }
+  }
+
+  async function deleteAdminPet(id, name) {
+    if (!confirm(`Delete pet "${name}"? This cannot be undone.`)) return;
+    try {
+      await AdminAPI.deletePet(id);
+      showToast(`Pet ${name} deleted.`);
+      loadPets();
+    } catch(err) { showToast(err.message, 'error'); }
+  }
+
+  function logout() { clearAuth(); window.location.href = '../index.html'; }
+
+  // Load initial tab
+  loadStats();
+</script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: pawpulse-backend
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false   # Set this in Render dashboard
+      - key: JWT_SECRET
+        sync: false   # Set this in Render dashboard
+      - key: ADMIN_EMAIL
+        value: admin@pawpulse.com
+      - key: ADMIN_PASSWORD
+        sync: false   # Set this in Render dashboard

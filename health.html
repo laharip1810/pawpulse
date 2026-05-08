@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Health Checker – PawPulse</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="../index.html" class="nav-brand"><span class="paw">🐾</span> PawPulse</a>
+  <div class="nav-links">
+    <a href="dashboard.html" class="nav-link">← Dashboard</a>
+    <a href="daily-logs.html" class="nav-link">Daily Logs</a>
+    <button onclick="logout()" class="nav-btn outline">Logout</button>
+  </div>
+</nav>
+
+<div class="page-wrapper" style="max-width:780px;">
+  <div class="page-header animate-in">
+    <div>
+      <h1 class="page-title">🏥 Pet Health Checker</h1>
+      <p class="page-subtitle">Describe your pet's symptoms and get instant care recommendations.</p>
+    </div>
+  </div>
+
+  <!-- Emergency Banner -->
+  <div class="alert alert-danger animate-in" style="font-weight:600;">
+    🚨 <strong>Emergency?</strong> If your pet is unconscious, not breathing, or bleeding heavily — go to an emergency vet <em>immediately</em>. Do not wait.
+  </div>
+
+  <!-- Checker Form -->
+  <div class="card animate-in delay-1" style="margin-top:1.5rem;">
+    <h3 style="margin-bottom:1.25rem;">📋 Symptom Checker</h3>
+
+    <div class="form-group">
+      <label class="form-label">Select Pet *</label>
+      <select id="petSelect" class="form-control" required onchange="loadHistory()">
+        <option value="">Loading pets...</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Quick Symptom Tags (click to add)</label>
+      <div class="symptom-tags" id="symptomTags">
+        <span class="symptom-tag" onclick="toggleTag(this,'vomiting')">🤢 Vomiting</span>
+        <span class="symptom-tag" onclick="toggleTag(this,'diarrhea')">💧 Diarrhea</span>
+        <span class="symptom-tag" onclick="toggleTag(this,'lethargic')">😴 Lethargic</span>
+        <span class="symptom-tag" onclick="toggleTag(this,'not eating')">🍽️ Not Eating</span>
+        <span class="symptom-tag" onclick="toggleTag(this,'itching')">🤔 Itching</span>
+        <span class="symptom-tag" onclick="toggleTag(this,'limping')">🦵 Limping</span>
+        <span class="symptom-tag" onclick="toggleTag(this,'coughing')">😷 Coughing</span>
+        <span class="symptom-tag" onclick="toggleTag(this,'eye discharge')">👁️ Eye Issues</span>
+        <span class="symptom-tag" onclick="toggleTag(this,'runny nose')">🤧 Runny Nose</span>
+        <span class="symptom-tag" onclick="toggleTag(this,'loss of appetite')">😞 Loss of Appetite</span>
+        <span class="symptom-tag" onclick="toggleTag(this,'skin rash')">🔴 Skin Rash</span>
+        <span class="symptom-tag" onclick="toggleTag(this,'weak')">💪 Weakness</span>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Describe Symptoms in Detail *</label>
+      <textarea id="symptomText" class="form-control" rows="4"
+        placeholder="e.g. My dog has been vomiting since morning, seems lethargic and is not eating food. Also noticed some loose stool..."></textarea>
+    </div>
+
+    <button onclick="checkHealth()" class="btn btn-primary btn-lg btn-full" id="checkBtn">
+      🏥 Analyze Symptoms
+    </button>
+  </div>
+
+  <!-- Diagnosis Result -->
+  <div id="diagnosisResult" style="display:none;margin-top:1.5rem;"></div>
+
+  <!-- Health History -->
+  <div id="historySection" style="margin-top:2rem;display:none;" class="animate-in">
+    <div class="section-header">
+      <h2 class="section-title">📋 Recent Health Checks</h2>
+    </div>
+    <div id="historyList"></div>
+  </div>
+</div>
+
+<script src="../js/api.js"></script>
+<script>
+  if (!requireAuth()) {}
+
+  let selectedTags = [];
+
+  async function loadPets() {
+    try {
+      const { pets } = await PetAPI.getAll();
+      const select = document.getElementById('petSelect');
+      if (pets.length === 0) {
+        select.innerHTML = '<option value="">No pets found — add a pet first</option>';
+        return;
+      }
+      select.innerHTML = pets.map(p => `<option value="${p._id}">${p.name} (${p.species})</option>`).join('');
+
+      // Pre-select from URL param
+      const params = new URLSearchParams(window.location.search);
+      const petId = params.get('petId');
+      if (petId) select.value = petId;
+
+      loadHistory();
+    } catch(err) {
+      document.getElementById('petSelect').innerHTML = '<option>Error loading pets</option>';
+    }
+  }
+
+  function toggleTag(el, tag) {
+    el.classList.toggle('selected');
+    if (el.classList.contains('selected')) {
+      selectedTags.push(tag);
+    } else {
+      selectedTags = selectedTags.filter(t => t !== tag);
+    }
+    // Append to textarea
+    const textarea = document.getElementById('symptomText');
+    const current = textarea.value;
+    if (el.classList.contains('selected')) {
+      textarea.value = current ? `${current}, ${tag}` : tag;
+    }
+  }
+
+  async function checkHealth() {
+    const petId = document.getElementById('petSelect').value;
+    const symptomText = document.getElementById('symptomText').value.trim();
+    const btn = document.getElementById('checkBtn');
+
+    if (!petId) { showToast('Please select a pet.', 'error'); return; }
+    if (!symptomText) { showToast('Please describe the symptoms.', 'error'); return; }
+
+    btn.textContent = 'Analyzing...';
+    btn.disabled = true;
+
+    try {
+      const data = await HealthAPI.checkSymptoms({ petId, symptomText, symptoms: selectedTags });
+      renderDiagnosis(data);
+      loadHistory();
+    } catch(err) {
+      showToast(err.message, 'error');
+    } finally {
+      btn.textContent = '🏥 Analyze Symptoms';
+      btn.disabled = false;
+    }
+  }
+
+  function renderDiagnosis(data) {
+    const d = data.diagnosis;
+    const sevColors = { Low:'low', Medium:'medium', High:'high', Emergency:'emergency' };
+    const cls = sevColors[d.severity] || 'low';
+    const recIcons = {
+      'Home Care': '🏠',
+      'Monitor & Watch': '👁️',
+      'Visit Vet Soon': '🏥',
+      'Emergency Vet': '🚨'
+    };
+
+    const html = `
+      <div class="diagnosis-card diagnosis-${cls} animate-in">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+          <div>
+            <h2 class="diagnosis-title">${recIcons[d.recommendation] || '🏥'} ${d.possibleIssue}</h2>
+            <p style="color:var(--text-soft);font-size:.9rem;">Analysis for <strong>${data.petName}</strong></p>
+          </div>
+          <div style="text-align:right;">
+            <span class="badge badge-${d.severity.toLowerCase()}" style="font-size:.9rem;padding:.4rem 1rem;">${d.severity} Severity</span>
+          </div>
+        </div>
+
+        <div style="margin:1.25rem 0;padding:1rem;background:rgba(255,255,255,.7);border-radius:var(--radius-sm);">
+          <strong style="font-size:1.1rem;">Recommendation: ${d.recommendation}</strong>
+        </div>
+
+        ${d.homeCareSteps?.length ? `
+          <h4 style="margin-bottom:.5rem;">🏠 Home Care Steps:</h4>
+          <ul class="home-care-steps">
+            ${d.homeCareSteps.map(s => `<li>${s}</li>`).join('')}
+          </ul>
+        ` : ''}
+
+        ${d.vetAdvice ? `
+          <div class="alert alert-info" style="margin-top:1.25rem;">
+            🩺 <strong>Vet Advice:</strong> ${d.vetAdvice}
+          </div>
+        ` : ''}
+
+        ${d.severity === 'Emergency' ? `
+          <div class="alert alert-danger" style="margin-top:1rem;font-weight:700;font-size:1rem;">
+            🚨 EMERGENCY: Go to the nearest veterinary clinic RIGHT NOW!
+          </div>
+        ` : ''}
+      </div>
+    `;
+    const result = document.getElementById('diagnosisResult');
+    result.innerHTML = html;
+    result.style.display = 'block';
+    result.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  async function loadHistory() {
+    const petId = document.getElementById('petSelect').value;
+    if (!petId) return;
+    try {
+      const { records } = await HealthAPI.getHistory(petId);
+      const section = document.getElementById('historySection');
+      const list = document.getElementById('historyList');
+
+      if (records.length === 0) { section.style.display = 'none'; return; }
+      section.style.display = 'block';
+
+      list.innerHTML = records.map(r => `
+        <div class="card" style="margin-bottom:.75rem;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:.5rem;">
+            <div>
+              <strong>${r.diagnosis.possibleIssue}</strong>
+              <div style="font-size:.82rem;color:var(--text-soft);margin-top:.2rem;">${formatDate(r.createdAt)}</div>
+              <div style="font-size:.85rem;margin-top:.3rem;color:var(--text-mid);">Symptoms: ${r.symptomText?.substring(0,80)}${r.symptomText?.length > 80 ? '...' : ''}</div>
+            </div>
+            <div style="text-align:right;">
+              <span class="badge badge-${r.diagnosis.severity?.toLowerCase()}">${r.diagnosis.severity}</span>
+              <div style="font-size:.78rem;margin-top:.25rem;color:var(--text-soft);">${r.diagnosis.recommendation}</div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    } catch(err) { /* ignore */ }
+  }
+
+  function logout() { clearAuth(); window.location.href = '../index.html'; }
+
+  loadPets();
+</script>
+</body>
+</html>

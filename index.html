@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PawPulse – Smart Pet Care Management</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐾</text></svg>"/>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="index.html" class="nav-brand">
+    <img src="images/logo.png" alt="Logo" class="logo">
+  </a>
+
+  <div class="nav-links" id="navLinks">
+    <a href="#features" class="nav-link">Features</a>
+    <a href="#how" class="nav-link">How It Works</a>
+    <a href="pages/login.html" class="nav-btn outline">Login</a>
+    <a href="pages/register.html" class="nav-btn">Get Started</a>
+  </div>
+</nav>
+
+<!-- ── Hero ───────────────────────────────────────────────── -->
+<section class="hero">
+  <h1>Smart Care for<br/>Your Beloved Pets 🐾</h1>
+  <p>Track vaccinations, monitor health, log daily meals — all in one beautiful dashboard designed for loving pet parents.</p>
+  <div class="hero-btns">
+    <a href="register.html" class="hero-btn hero-btn-primary">Start Free Today</a>
+    <a href="login.html" class="hero-btn hero-btn-outline">Sign In</a>
+  </div>
+</section>
+
+<!-- ── Stats Strip ─────────────────────────────────────────── -->
+<section style="background:var(--surface);border-bottom:1.5px solid var(--border);padding:2.5rem 2rem;">
+  <div class="container">
+    <div class="stats-grid" style="max-width:700px;margin:0 auto;">
+      <div class="stat-card animate-in delay-1">
+        <div class="stat-icon">🐶</div>
+        <div class="stat-value">1000+</div>
+        <div class="stat-label">Pets Registered</div>
+      </div>
+      <div class="stat-card animate-in delay-2">
+        <div class="stat-icon">💉</div>
+        <div class="stat-value">5000+</div>
+        <div class="stat-label">Vaccines Tracked</div>
+      </div>
+      <div class="stat-card animate-in delay-3">
+        <div class="stat-icon">🏥</div>
+        <div class="stat-value">2000+</div>
+        <div class="stat-label">Health Checks</div>
+      </div>
+      <div class="stat-card animate-in delay-4">
+        <div class="stat-icon">😊</div>
+        <div class="stat-value">99%</div>
+        <div class="stat-label">Happy Pet Parents</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Features ────────────────────────────────────────────── -->
+<section class="features" id="features">
+  <div class="container">
+    <div style="text-align:center;max-width:580px;margin:0 auto;">
+      <h2>Everything Your Pet Needs</h2>
+      <p style="color:var(--text-soft);margin-top:.75rem;">PawPulse gives you a complete toolkit to keep your furry family members healthy and happy.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card animate-in delay-1">
+        <div class="feature-icon">🐾</div>
+        <h3>Pet Profiles</h3>
+        <p>Create detailed profiles for each pet — breed, age, gender, weight, and more. All in one place.</p>
+      </div>
+      <div class="feature-card animate-in delay-2">
+        <div class="feature-icon">💉</div>
+        <h3>Vaccine Reminders</h3>
+        <p>Auto-generated vaccination schedules based on your pet's species and age. Never miss a dose again.</p>
+      </div>
+      <div class="feature-card animate-in delay-3">
+        <div class="feature-icon">🍗</div>
+        <h3>Food & Water Tracker</h3>
+        <p>Log daily food and water intake. Monitor trends and ensure proper nutrition every day.</p>
+      </div>
+      <div class="feature-card animate-in delay-4">
+        <div class="feature-icon">🏥</div>
+        <h3>AI Health Checker</h3>
+        <p>Enter symptoms and get instant advice: home care tips or whether to visit the vet urgently.</p>
+      </div>
+      <div class="feature-card animate-in delay-1">
+        <div class="feature-icon">📊</div>
+        <h3>Smart Dashboard</h3>
+        <p>All your pet's info, logs, and alerts in a clean, beautiful dashboard at a glance.</p>
+      </div>
+      <div class="feature-card animate-in delay-2">
+        <div class="feature-icon">🔒</div>
+        <h3>Secure & Private</h3>
+        <p>JWT-based authentication with bcrypt password hashing. Your data stays yours.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── How It Works ─────────────────────────────────────────── -->
+<section id="how" style="background:var(--surface);padding:5rem 2rem;border-top:1.5px solid var(--border);">
+  <div class="container" style="max-width:800px;">
+    <div style="text-align:center;margin-bottom:3rem;">
+      <h2>Get Started in 3 Steps</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:2rem;text-align:center;">
+      <div>
+        <div style="width:56px;height:56px;background:var(--teal);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.4rem;font-weight:800;margin:0 auto 1rem;font-family:var(--font-head);">1</div>
+        <h3>Create Account</h3>
+        <p style="color:var(--text-soft);font-size:.9rem;margin-top:.4rem;">Register in seconds. No credit card needed.</p>
+      </div>
+      <div>
+        <div style="width:56px;height:56px;background:var(--amber);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.4rem;font-weight:800;margin:0 auto 1rem;font-family:var(--font-head);">2</div>
+        <h3>Add Your Pet</h3>
+        <p style="color:var(--text-soft);font-size:.9rem;margin-top:.4rem;">Add pet details — vaccines are auto-scheduled instantly.</p>
+      </div>
+      <div>
+        <div style="width:56px;height:56px;background:var(--indigo);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.4rem;font-weight:800;margin:0 auto 1rem;font-family:var(--font-head);">3</div>
+        <h3>Track & Monitor</h3>
+        <p style="color:var(--text-soft);font-size:.9rem;margin-top:.4rem;">Log meals, check health, get reminders daily.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ──────────────────────────────────────────────────── -->
+<section style="background:linear-gradient(135deg,var(--teal-dark),var(--teal-light));padding:5rem 2rem;text-align:center;color:#fff;">
+  <h2 style="color:#fff;font-size:2.2rem;">Ready to be the best pet parent? 🐾</h2>
+  <p style="opacity:.9;margin:.75rem auto 2rem;max-width:500px;">Join thousands of pet parents who trust PawPulse to keep their animals healthy, happy, and thriving.</p>
+  <a href="register.html" class="hero-btn hero-btn-primary" style="display:inline-block;">Create Free Account</a>
+</section>
+
+<!-- ── Footer ───────────────────────────────────────────────── -->
+<footer style="background:var(--surface);border-top:1.5px solid var(--border);padding:2rem;text-align:center;color:var(--text-soft);font-size:.88rem;">
+  <div class="nav-brand" style="justify-content:center;margin-bottom:.5rem;">
+    <span class="paw">🐾</span> PawPulse
+  </div>
+  <p>© 2024 PawPulse. Built with ❤️ for pet parents everywhere.</p>
+</footer>
+
+<script src="js/api.js"></script>
+<script>
+  // Redirect if already logged in
+  if (isLoggedIn()) {
+    window.location.href = isAdmin() ? 'admin.html' : 'dashboard.html';
+  }
+</script>
+</body>
+</html>

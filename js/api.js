@@ -1,5 +1,5 @@
 // ─── API Configuration ─────────────────────────────────────────
-const API_BASE = 'http://localhost:5000/api';// 🔥 replace with your real backend URL
+const API_BASE = 'http://localhost:5000/api';
 
 // ─── Token Management ─────────────────────────────────────────
 const getToken = () => localStorage.getItem('pawpulse_token');
@@ -18,26 +18,36 @@ const clearAuth = () => {
 const isLoggedIn = () => !!getToken();
 const isAdmin = () => getUser()?.role === 'admin';
 
-// ─── Fetch Wrapper (FIXED) ─────────────────────────────────────
+// ─── Fetch Wrapper ────────────────────────────────────────────
 const apiCall = async (endpoint, method = 'GET', body = null) => {
   const headers = { 'Content-Type': 'application/json' };
-  const token = getToken();
-  if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  const config = { method, headers };
-  if (body) config.body = JSON.stringify(body);
+  const token = getToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const config = {
+    method,
+    headers
+  };
+
+  if (body) {
+    config.body = JSON.stringify(body);
+  }
 
   try {
     const response = await fetch(`${API_BASE}${endpoint}`, config);
 
-    const text = await response.text(); // 👈 get raw response safely
+    const text = await response.text();
 
     let data;
+
     try {
       data = text ? JSON.parse(text) : {};
     } catch {
-      console.error("❌ Non-JSON response:", text);
-      throw new Error("Server error: Invalid response (check backend)");
+      console.error('❌ Non-JSON response:', text);
+      throw new Error('Server error: Invalid response');
     }
 
     if (!response.ok) {
@@ -47,7 +57,7 @@ const apiCall = async (endpoint, method = 'GET', body = null) => {
     return data;
 
   } catch (error) {
-    console.error("❌ API Error:", error);
+    console.error('❌ API Error:', error);
     throw new Error(error.message || 'Network error');
   }
 };
@@ -66,68 +76,110 @@ const PetAPI = {
   create: (data) => apiCall('/pets', 'POST', data),
   update: (id, data) => apiCall(`/pets/${id}`, 'PUT', data),
   delete: (id) => apiCall(`/pets/${id}`, 'DELETE'),
-  markVaccination: (petId, vacId) => apiCall(`/pets/${petId}/vaccinations/${vacId}`, 'PUT'),
+
+  markVaccination: (petId, vacId) =>
+    apiCall(`/pets/${petId}/vaccinations/${vacId}`, 'PUT'),
+
   getLogs: (id) => apiCall(`/pets/${id}/logs`),
-  addLog: (id, data) => apiCall(`/pets/${id}/logs`, 'POST', data),
-  updateLog: (petId, logId, data) => apiCall(`/pets/${petId}/logs/${logId}`, 'PUT', data),
-  deleteLog: (petId, logId) => apiCall(`/pets/${petId}/logs/${logId}`, 'DELETE'),
+
+  addLog: (id, data) =>
+    apiCall(`/pets/${id}/logs`, 'POST', data),
+
+  updateLog: (petId, logId, data) =>
+    apiCall(`/pets/${petId}/logs/${logId}`, 'PUT', data),
+
+  deleteLog: (petId, logId) =>
+    apiCall(`/pets/${petId}/logs/${logId}`, 'DELETE')
 };
 
 // ─── Health API ───────────────────────────────────────────────
 const HealthAPI = {
-  checkSymptoms: (data) => apiCall('/health/check', 'POST', data),
-  getHistory: (petId) => apiCall(`/health/${petId}`),
+  checkSymptoms: (data) =>
+    apiCall('/health/check', 'POST', data),
+
+  getHistory: (petId) =>
+    apiCall(`/health/${petId}`)
 };
 
 // ─── Admin API ────────────────────────────────────────────────
 const AdminAPI = {
   getStats: () => apiCall('/admin/stats'),
+
   getUsers: () => apiCall('/admin/users'),
-  deleteUser: (id) => apiCall(`/admin/users/${id}`, 'DELETE'),
+
+  deleteUser: (id) =>
+    apiCall(`/admin/users/${id}`, 'DELETE'),
+
   getPets: () => apiCall('/admin/pets'),
-  deletePet: (id) => apiCall(`/admin/pets/${id}`, 'DELETE'),
+
+  deletePet: (id) =>
+    apiCall(`/admin/pets/${id}`, 'DELETE')
 };
 
 // ─── Route Guard ──────────────────────────────────────────────
 const requireAuth = () => {
   if (!isLoggedIn()) {
-    window.location.href = 'frontend/pages/login.html';
+    window.location.href = 'login.html';
     return false;
   }
+
   return true;
 };
 
 const requireAdmin = () => {
   if (!isLoggedIn() || !isAdmin()) {
-    window.location.href = 'frontend/pages/login.html';
+    window.location.href = 'login.html';
     return false;
   }
+
   return true;
 };
 
 // ─── Toast Notification ───────────────────────────────────────
 const showToast = (message, type = 'success') => {
   const existing = document.querySelector('.toast');
-  if (existing) existing.remove();
+
+  if (existing) {
+    existing.remove();
+  }
 
   const toast = document.createElement('div');
+
   toast.className = `toast toast-${type}`;
+
   toast.innerHTML = `
-    <span>${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span>
+    <span>
+      ${
+        type === 'success'
+          ? '✅'
+          : type === 'error'
+          ? '❌'
+          : 'ℹ️'
+      }
+    </span>
     <span>${message}</span>
   `;
 
   document.body.appendChild(toast);
-  setTimeout(() => toast.classList.add('show'), 10);
+
+  setTimeout(() => {
+    toast.classList.add('show');
+  }, 10);
+
   setTimeout(() => {
     toast.classList.remove('show');
-    setTimeout(() => toast.remove(), 300);
+
+    setTimeout(() => {
+      toast.remove();
+    }, 300);
+
   }, 3000);
 };
 
 // ─── Utility ──────────────────────────────────────────────────
 const formatDate = (dateStr) => {
   if (!dateStr) return 'N/A';
+
   return new Date(dateStr).toLocaleDateString('en-IN', {
     day: '2-digit',
     month: 'short',
@@ -137,5 +189,8 @@ const formatDate = (dateStr) => {
 
 const daysUntil = (dateStr) => {
   const diff = new Date(dateStr) - new Date();
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+
+  return Math.ceil(
+    diff / (1000 * 60 * 60 * 24)
+  );
 };
